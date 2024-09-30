@@ -4633,7 +4633,7 @@ pg_hint_plan_join_search(PlannerInfo *root, int levels_needed,
 		if (prev_join_search)
 			return (*prev_join_search) (root, levels_needed, initial_rels);
 		else if (enable_geqo && levels_needed >= geqo_threshold)
-			return geqo(root, levels_needed, initial_rels);
+			elog(ERROR, "GEQO not supported for Greenplum/Cloudberry");
 		else
 			return standard_join_search(root, levels_needed, initial_rels);
 	}
@@ -4643,7 +4643,7 @@ pg_hint_plan_join_search(PlannerInfo *root, int levels_needed,
 	 * effect.  Join method and join order is not controllable by hints.
 	 */
 	if (enable_geqo && levels_needed >= geqo_threshold)
-		return geqo(root, levels_needed, initial_rels);
+		elog(ERROR, "GEQO not supported for Greenplum/Cloudberry");
 
 	nbaserel = get_num_baserels(initial_rels);
 	current_hint_state->join_hint_level =

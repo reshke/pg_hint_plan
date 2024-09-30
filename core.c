@@ -74,7 +74,7 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	required_outer = rel->lateral_relids;
 
 	/* Consider sequential scan */
-	add_path(rel, create_seqscan_path(root, rel, required_outer, 0));
+	add_path(rel, create_seqscan_path(root, rel, required_outer, 0), root);
 
 	/* If appropriate, consider parallel sequential scan */
 	if (rel->consider_parallel && required_outer == NULL)
@@ -131,8 +131,7 @@ set_tablesample_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *
 		path = (Path *) create_material_path(rel, path);
 	}
 
-	add_path(rel, path);
-
+	add_path(rel, path, root);
 	/* For the moment, at least, there are no other paths to consider */
 }
 
@@ -213,8 +212,8 @@ set_function_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	}
 
 	/* Generate appropriate path */
-	add_path(rel, create_functionscan_path(root, rel,
-										   pathkeys, required_outer));
+	add_path(rel, create_functionscan_path(root, rel, rte,
+										   pathkeys, required_outer), root);
 }
 
 
@@ -235,7 +234,7 @@ set_values_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	required_outer = rel->lateral_relids;
 
 	/* Generate appropriate path */
-	add_path(rel, create_valuesscan_path(root, rel, required_outer));
+	add_path(rel, create_valuesscan_path(root, rel, rte, required_outer), root);
 }
 
 /*
@@ -256,7 +255,7 @@ set_tablefunc_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 
 	/* Generate appropriate path */
 	add_path(rel, create_tablefuncscan_path(root, rel,
-											required_outer));
+											required_outer), root);
 }
 
 
@@ -553,8 +552,13 @@ create_plain_partial_paths(PlannerInfo *root, RelOptInfo *rel)
 {
 	int			parallel_workers;
 
+#ifndef GP_VERSION_NUM
 	parallel_workers = compute_parallel_worker(rel, rel->pages, -1,
 											   max_parallel_workers_per_gather);
+#else
+	parallel_workers = compute_parallel_worker(root, rel, rel->pages, -1,
+											   max_parallel_workers_per_gather);
+#endif
 
 	/* If any limit was set to zero, the user doesn't want a parallel scan. */
 	if (parallel_workers <= 0)
